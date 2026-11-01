@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Stars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===================== STYLE (CSS) ===================== */
+:root{
+  --space:#070b1f; --on-space:#c9d4f2; --on-space-muted:#7d8bb3; --gold:#f5c46a;
+  --panel:#f4f6fb; --panel-ink:#162039; --panel-muted:#55627f; --panel-line:#d6dcea;
+  --chip:#e4e9f5; --field:#ffffff; --accent:#2b56c9;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --panel:#10172e; --panel-ink:#e7ecfa; --panel-muted:#9aa6c7; --panel-line:#26304f;
+    --chip:#1c2545; --field:#0b1126; --accent:#8fb0ff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --panel:#10172e; --panel-ink:#e7ecfa; --panel-muted:#9aa6c7; --panel-line:#26304f;
+  --chip:#1c2545; --field:#0b1126; --accent:#8fb0ff; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;overflow:hidden;background:var(--space);color:var(--on-space);
+  font-family:"Work Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45}
+#scene{position:fixed;inset:0}
+#scene canvas{display:block;touch-action:none}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.label{position:absolute;top:0;left:0;pointer-events:auto;cursor:pointer;background:none;border:0;
+  padding:2px 4px;border-radius:4px;font:inherit;font-size:12.5px;color:var(--on-space);white-space:nowrap;
+  text-shadow:0 0 6px var(--space),0 0 2px var(--space)}
+.label.is-family{color:var(--gold)}
+.label.is-dim{opacity:.35}
+.label.is-selected{font-weight:600}
+.ring-label{position:absolute;top:0;left:0;font-size:11px;color:var(--on-space-muted);white-space:nowrap}
+.sun-label{position:absolute;top:0;left:0;font-size:12px;color:var(--gold);white-space:nowrap}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:5;pointer-events:none;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 0;display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 20px}
+.topbar > *{pointer-events:auto}
+.wordmark{margin-right:auto}
+.wordmark h1{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:30px;line-height:1;color:var(--on-space)}
+.wordmark p{margin:4px 0 0;font-size:12.5px;color:var(--on-space-muted)}
+.search{display:flex;flex-direction:column;gap:4px;min-width:220px}
+.search input{font:inherit;font-size:14px;padding:9px 12px;border-radius:10px;border:1px solid var(--panel-line);
+  background:var(--field);color:var(--panel-ink);width:100%}
+.search .status{font-size:12px;color:var(--on-space);min-height:1em;text-shadow:0 0 4px var(--space)}
+.controls{display:flex;gap:8px;align-items:center}
+.btn{font:inherit;font-size:13.5px;font-weight:500;padding:9px 13px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--panel-line);background:var(--panel);color:var(--panel-ink)}
+.btn[hidden]{display:none}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--on-space);cursor:pointer;text-shadow:0 0 4px var(--space)}
+.toggle input{accent-color:var(--gold)}
+#hint{position:fixed;left:18px;bottom:0;z-index:4;max-width:min(420px,calc(100% - 36px));
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);font-size:13px;color:var(--on-space-muted);text-shadow:0 0 4px var(--space)}
+#panel{position:fixed;z-index:6;right:18px;top:calc(env(safe-area-inset-top,0px) + 96px);width:340px;max-height:calc(100% - 130px);
+  overflow:auto;background:var(--panel);color:var(--panel-ink);border:1px solid var(--panel-line);border-radius:14px;padding:20px 22px 18px}
+#panel[hidden]{display:none}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.star-name{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:34px;line-height:1.05}
+.star-sub{margin:6px 0 0;color:var(--panel-muted);font-size:13.5px}
+.close{background:none;border:0;cursor:pointer;color:var(--panel-muted);font-size:22px;line-height:1;padding:2px 6px;border-radius:6px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:18px 0 0;font-size:14px}
+.facts dt{color:var(--panel-muted)} .facts dd{margin:0}
+.family{margin-top:20px;padding-top:16px;border-top:1px solid var(--panel-line)}
+.family h3{margin:0;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--gold);flex:none}
+.family p{margin:6px 0 0;font-size:13.5px;color:var(--panel-muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font:inherit;font-size:13px;padding:5px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--panel-line);background:var(--chip);color:var(--panel-ink)}
+.note{margin:18px 0 0;font-size:12px;color:var(--panel-muted)}
+#error{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;z-index:10}
+#error div{max-width:460px;background:var(--panel);color:var(--panel-ink);border:1px solid var(--panel-line);border-radius:14px;padding:22px}
+@media (max-width:700px){
+  .wordmark h1{font-size:25px} .search{min-width:0;flex:1 1 100%}
+  #panel{left:0;right:0;top:auto;bottom:0;width:auto;max-height:50%;border-radius:16px 16px 0 0;border-bottom:0;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  body.panel-open #hint{display:none}
+}
+</style>
+</head>
+<body>
+<!-- ===================== STRUCTURE (HTML) ===================== -->
+<div id="scene"></div>
+<div id="labels"></div>
+<header class="topbar">
+  <div class="wordmark">
+    <h1>Star families</h1>
+    <p id="datainfo">Loading stars.json…</p>
+  </div>
+  <div class="search">
+    <label for="search" style="position:absolute;left:-9999px">Find a star</label>
+    <input id="search" list="star-names" placeholder="Find a star, e.g. Mizar" autocomplete="off">
+    <datalist id="star-names"></datalist>
+    <div class="status" id="status" aria-live="polite"></div>
+  </div>
+  <div class="controls">
+    <label class="toggle"><input type="checkbox" id="lines" checked> Big Dipper lines</label>
+    <button class="btn" id="back" hidden>Back to Earth view</button>
+  </div>
+</header>
+<p id="hint">Drag to look around the sky. Click a star to fly to it.</p>
+<aside id="panel" hidden aria-live="polite"></aside>
+<div id="error"><div>
+  <h2 style="margin:0 0 8px;font-size:18px">Couldn’t load stars.json</h2>
+  <p style="margin:0">Open this page with <b>Live Server</b> in VS Code (right-click index.html → Open with Live Server), and make sure <code>data/out/stars.json</code> exists. Run <code>01_bright_stars.R</code> to create it.</p>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ===================== BEHAVIOUR (JavaScript) =====================
+
+// ---------- 1. Settings ----------
+const DATA_URL = "../data/out/stars.json";   // the file your R script writes
+const LABEL_MAG = 2.6;                        // show names for stars brighter than this
+const DIPPER = [["Dubhe","Merak"],["Merak","Phecda"],["Phecda","Megrez"],["Megrez","Dubhe"],
+                ["Megrez","Alioth"],["Alioth","Mizar"],["Mizar","Alkaid"]];
+
+// ---------- 2. Helpers ----------
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// RA/Dec/distance -> x,y,z (light-years, Sun at 0,0,0, celestial north = up)
+function toXYZ(raDeg, decDeg, d){
+  const a = raDeg*Math.PI/180, b = decDeg*Math.PI/180;
+  const X = d*Math.cos(b)*Math.cos(a), Y = d*Math.cos(b)*Math.sin(a), Z = d*Math.sin(b);
+  return new THREE.Vector3(X, Z, -Y);
+}
+// colour index (blue..red) -> a star colour
+const CI_STOPS = [[-0.3,"#9bb2ff"],[0.0,"#cad8ff"],[0.4,"#f8f7ff"],[0.65,"#fff4e8"],[1.0,"#ffd8a8"],[1.5,"#ffb56c"],[2.0,"#ff9a50"]];
+function colorFor(ci, spectral){
+  if(ci == null){
+    const s = spectral ? spectral[0] : "A";
+    return new THREE.Color(({O:"#9db8ff",B:"#a9c4ff",A:"#e6eeff",F:"#fff4e0",G:"#ffe6b0",K:"#ffc78a",M:"#ff9e6e"})[s] || "#ffffff");
+  }
+  const v = Math.min(2.0, Math.max(-0.3, ci));
+  for(let i=1;i<CI_STOPS.length;i++){
+    if(v <= CI_STOPS[i][0]){
+      const [a0,c0] = CI_STOPS[i-1], [a1,c1] = CI_STOPS[i];
+      return new THREE.Color(c0).lerp(new THREE.Color(c1), (v-a0)/(a1-a0));
+    }
+  }
+  return new THREE.Color(CI_STOPS[CI_STOPS.length-1][1]);
+}
+// magnitude -> dot size in pixels (lower magnitude = brighter = bigger)
+const sizeFor = mag => Math.min(28, Math.max(2, 5*Math.pow(10, -0.25*(mag-3))));
+const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const fmt = n => n.toLocaleString("en-US");
+
+// ---------- 3. 3D scene ----------
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x070b1f);
+document.getElementById("scene").appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.001, 20000);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+const labelsEl = document.getElementById("labels");
+const GOLD = new THREE.Color("#f5c46a");
+
+// ---------- 4. State ----------
+let STARS = [], FAMILIES = {}, byName = {}, points = null, mode = "sky", selected = null, tween = null;
+let labelled = [];        // stars that get a name label
+const ring = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: (()=>{const c=document.createElement("canvas");c.width=c.height=128;const g=c.getContext("2d");
+    g.strokeStyle="#fff";g.lineWidth=5;g.beginPath();g.arc(64,64,54,0,Math.PI*2);g.stroke();return new THREE.CanvasTexture(c);})(),
+  transparent:true, depthWrite:false, sizeAttenuation:false}));
+ring.visible=false; scene.add(ring);
+const sunLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({color:0x8fa2d6, dashSize:2, gapSize:2, transparent:true, opacity:.6}));
+sunLine.visible=false; scene.add(sunLine);
+
+// Distance rings + the Sun (shown in the 3D view)
+const rings = new THREE.Group(), ringLabels = [];
+[10,25,50,100,250,500,1000].forEach(r=>{
+  const pts=[]; for(let i=0;i<=128;i++){const a=i/128*Math.PI*2; pts.push(new THREE.Vector3(r*Math.cos(a),0,r*Math.sin(a)));}
+  rings.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0x2c3b63, transparent:true, opacity:.6})));
+  const el=document.createElement("div"); el.className="ring-label"; el.textContent=r+" light-years";
+  labelsEl.appendChild(el); ringLabels.push({pos:new THREE.Vector3(r,0,0), el});
+});
+scene.add(rings);
+const sunPos = new THREE.Vector3(0,0,0);
+const sunLabel = document.createElement("div"); sunLabel.className="sun-label"; sunLabel.textContent="Sun (you are here)";
+labelsEl.appendChild(sunLabel);
+let asterism = null;
+
+// ---------- 5. Load stars.json and build the stars ----------
+fetch(DATA_URL, {cache:"no-store"})
+  .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(buildStars)
+  .catch(err => { console.error(err); document.getElementById("error").style.display="flex";
+                  document.getElementById("datainfo").textContent="No data loaded"; });
+
+function buildStars(data){
+  FAMILIES = data.families || {};
+  STARS = data.stars.filter(s => s.ra!=null && s.dec!=null && s.dist_ly!=null && s.mag!=null);
+  const n = STARS.length;
+  const pos = new Float32Array(n*3), col = new Float32Array(n*3), size = new Float32Array(n), alpha = new Float32Array(n);
+  STARS.forEach((s,i)=>{
+    s.i = i;
+    s.pos = toXYZ(s.ra, s.dec, s.dist_ly);
+    s.baseColor = colorFor(s.ci, s.spectral);
+    s.size = sizeFor(s.mag);
+    pos.set([s.pos.x, s.pos.y, s.pos.z], i*3);
+    col.set([s.baseColor.r, s.baseColor.g, s.baseColor.b], i*3);
+    size[i] = s.size; alpha[i] = 1;
+    if(s.name) byName[s.name.toLowerCase()] = s;
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos,3));
+  geo.setAttribute("aColor",   new THREE.BufferAttribute(col,3));
+  geo.setAttribute("aSize",    new THREE.BufferAttribute(size,1));
+  geo.setAttribute("aAlpha",   new THREE.BufferAttribute(alpha,1));
+  // A small shader draws every star as a glowing dot whose size depends on brightness
+  const mat = new THREE.ShaderMaterial({
+    uniforms:{ uPR:{value:renderer.getPixelRatio()} },
+    vertexShader:`attribute vec3 aColor; attribute float aSize; attribute float aAlpha; uniform float uPR;
+      varying vec3 vColor; varying float vAlpha;
+      void main(){ vColor=aColor; vAlpha=aAlpha; gl_PointSize=aSize*uPR*2.0;
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`varying vec3 vColor; varying float vAlpha;
+      void main(){ float d=length(gl_PointCoord-0.5)*2.0; if(d>1.0) discard;
+        float core=smoothstep(0.55,0.0,d); float halo=smoothstep(1.0,0.0,d)*0.4;
+        gl_FragColor=vec4(vColor, (core+halo)*vAlpha); }`,
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+  points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  // Labels: bright named stars + every family member
+  labelled = STARS.filter(s => s.name && (s.mag <= LABEL_MAG || s.family));
+  labelled.forEach(s=>{
+    const b=document.createElement("button"); b.className="label"; b.type="button"; b.textContent=s.name;
+    b.addEventListener("click", ()=>select(s)); labelsEl.appendChild(b); s.label=b;
+  });
+
+  // Big Dipper lines (only if those stars are in the data)
+  const seg = DIPPER.filter(([a,b])=>byName[a.toLowerCase()] && byName[b.toLowerCase()])
+                    .flatMap(([a,b])=>[byName[a.toLowerCase()].pos, byName[b.toLowerCase()].pos]);
+  if(seg.length){
+    asterism = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg),
+      new THREE.LineBasicMaterial({color:0x5d72a6, transparent:true, opacity:.55}));
+    scene.add(asterism);
+  }
+
+  // Search list
+  document.getElementById("star-names").innerHTML =
+    STARS.filter(s=>s.name).map(s=>`<option value="${s.name}">`).join("");
+
+  // Info line: proves the page is reading your file
+  const famCount = Object.keys(FAMILIES).length;
+  const famMembers = STARS.filter(s=>s.family).length;
+  document.getElementById("datainfo").textContent =
+    `${fmt(n)} stars loaded from stars.json · ${famCount} ${famCount===1?"family":"families"} (${famMembers} members)`;
+
+  // Start looking at the Big Dipper (or anywhere if it's missing)
+  const dip = ["dubhe","merak","phecda","megrez","alioth","mizar","alkaid"].map(k=>byName[k]).filter(Boolean);
+  const dir = dip.length ? dip.reduce((v,s)=>v.add(s.pos.clone().normalize()), new THREE.Vector3()).normalize() : new THREE.Vector3(0,0,-1);
+  configureSky(dir); controls.update();
+}
+
+// ---------- 6. Highlighting ----------
+function applyHighlight(){
+  if(!points) return;
+  const fam = selected && selected.family;
+  const col = points.geometry.attributes.aColor, al = points.geometry.attributes.aAlpha;
+  STARS.forEach(s=>{
+    const inFam = fam && s.family===fam;
+    const c = inFam ? s.baseColor.clone().lerp(GOLD,.7) : s.baseColor;
+    col.setXYZ(s.i, c.r, c.g, c.b);
+    const dim = mode==="space" && selected && s!==selected && !inFam;
+    al.setX(s.i, dim ? .3 : 1);
+    if(s.label){
+      s.label.classList.toggle("is-family", !!inFam);
+      s.label.classList.toggle("is-dim", !!dim);
+      s.label.classList.toggle("is-selected", s===selected);
+    }
+  });
+  col.needsUpdate = true; al.needsUpdate = true;
+  if(selected){
+    ring.visible=true; ring.position.copy(selected.pos);
+    const k = Math.max(0.035, selected.size*0.006); ring.scale.set(k,k,1);
+    ring.material.color.set(selected.family ? 0xf5c46a : 0xc9d4f2);
+    sunLine.geometry.setFromPoints([sunPos, selected.pos]); sunLine.computeLineDistances();
+    sunLine.visible = mode==="space";
+  } else { ring.visible=false; sunLine.visible=false; }
+}
+
+// ---------- 7. Info panel ----------
+const panel = document.getElementById("panel");
+function renderPanel(s){
+  const fam = s.family && FAMILIES[s.family];
+  const siblings = fam ? STARS.filter(o=>o.family===s.family && o!==s) : [];
+  const chip = o => `<button class="chip" type="button" data-i="${o.i}">${o.name || o.designation}</button>`;
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div><h2 class="star-name">${s.name || s.designation}</h2>
+        <p class="star-sub">${s.name ? s.designation + " · " : ""}constellation ${s.constellation || "unknown"}</p></div>
+      <button class="close" type="button" aria-label="Close star details">×</button>
+    </div>
+    <dl class="facts">
+      <dt>Distance</dt><dd>${fmt(s.dist_ly)} light-years</dd>
+      <dt>Brightness</dt><dd>Magnitude ${s.mag} <span style="color:var(--panel-muted)">(lower is brighter)</span></dd>
+      <dt>Star type</dt><dd>${s.spectral || "unknown"}</dd>
+      <dt>Colour index</dt><dd>${s.ci ?? "unknown"}</dd>
+    </dl>
+    <div class="family">
+      ${fam ? `<h3><span class="dot" aria-hidden="true"></span>${fam.name}</h3>
+        <p>${fam.blurb || ""} ${fam.age ? "Born " + fam.age + " ago." : ""}</p>
+        <p>${siblings.length} ${siblings.length===1?"sibling":"siblings"} in the data:</p>
+        <div class="chips">${siblings.slice(0,16).map(chip).join("")}</div>
+        ${siblings.length>16 ? `<p>…and ${siblings.length-16} more.</p>` : ""}`
+      : `<h3>No family assigned</h3><p>No family is labelled for this star in stars.json.</p>`}
+    </div>
+    <p class="note">Data: HYG catalog, processed in R. Families are currently a hand-labelled placeholder; the clustering pipeline will replace them.</p>`;
+  panel.hidden=false; document.body.classList.add("panel-open");
+  panel.querySelector(".close").addEventListener("click", deselect);
+  panel.querySelectorAll(".chip").forEach(c=>c.addEventListener("click", ()=>select(STARS[+c.dataset.i])));
+}
+function deselect(){ selected=null; panel.hidden=true; document.body.classList.remove("panel-open"); applyHighlight(); }
+
+// ---------- 8. Sky view, 3D view and camera flights ----------
+const hint = document.getElementById("hint"), backBtn = document.getElementById("back");
+function configureSky(dir){
+  controls.enableZoom=false; controls.enablePan=false; controls.rotateSpeed=-0.35;
+  controls.minDistance=0; controls.maxDistance=Infinity; controls.target.set(0,0,0);
+  camera.position.copy(dir).normalize().multiplyScalar(-0.01);
+  setMode("sky");
+}
+function configureSpace(){
+  controls.enableZoom=true; controls.enablePan=true; controls.rotateSpeed=0.5;
+  controls.minDistance=1; controls.maxDistance=5000;
+}
+function setMode(m){
+  mode=m; const space = m==="space";
+  rings.visible=space; sunLabel.style.display=space?"":"none";
+  ringLabels.forEach(r=>r.el.style.display=space?"":"none");
+  backBtn.hidden=!space;
+  hint.textContent = space ? "Drag to orbit, scroll or pinch to zoom. Click another star to fly to it."
+                           : "Drag to look around the sky. Click a star to fly to it.";
+  applyHighlight();
+}
+function startTween(p1, q1, onDone){
+  const lookDir = new THREE.Vector3(); camera.getWorldDirection(lookDir);
+  const q0 = mode==="sky" ? lookDir.multiplyScalar(100) : controls.target.clone();
+  tween = {t0:performance.now(), dur:reducedMotion?0:1700, p0:camera.position.clone(), q0, p1, q1, onDone};
+  controls.enabled=false;
+}
+function flyTo(s){
+  const up = new THREE.Vector3(0,1,0), toSun = s.pos.clone().negate().normalize();
+  let side = new THREE.Vector3().crossVectors(toSun, up); if(side.lengthSq()<1e-6) side.set(1,0,0); side.normalize();
+  const D = s.family ? 70 : Math.max(20, Math.min(s.pos.length()*0.6, 150));
+  const off = side.add(toSun.multiplyScalar(.35)).add(up.multiplyScalar(.3)).normalize();
+  startTween(s.pos.clone().add(off.multiplyScalar(D)), s.pos.clone(), ()=>configureSpace());
+  setMode("space");
+}
+function goHome(){
+  if(tween) return;
+  const dir = (selected ? selected.pos : controls.target).clone().normalize();
+  if(dir.lengthSq()===0) dir.set(0,0,-1);
+  startTween(dir.clone().multiplyScalar(-0.01), dir.clone().multiplyScalar(100), ()=>configureSky(dir));
+}
+function select(s){ if(!s) return; selected=s; renderPanel(s); applyHighlight(); flyTo(s); }
+backBtn.addEventListener("click", goHome);
+
+// ---------- 9. Clicking on a star ----------
+const tmp = new THREE.Vector3(), cam = new THREE.Vector3();
+function screenOf(pos){
+  cam.copy(pos).applyMatrix4(camera.matrixWorldInverse);
+  if(cam.z > -0.0001) return null;
+  tmp.copy(pos).project(camera);
+  return {x:(tmp.x*.5+.5)*window.innerWidth, y:(-tmp.y*.5+.5)*window.innerHeight};
+}
+let down=null;
+renderer.domElement.addEventListener("pointerdown", e=>{ down={x:e.clientX,y:e.clientY}; });
+renderer.domElement.addEventListener("pointerup", e=>{
+  if(!down || tween){ down=null; return; }
+  const dx=e.clientX-down.x, dy=e.clientY-down.y; down=null;
+  if(dx*dx+dy*dy>36) return;
+  let best=null, bestScore=Infinity;
+  STARS.forEach(s=>{
+    const p = screenOf(s.pos); if(!p) return;
+    const d = Math.hypot(p.x-e.clientX, p.y-e.clientY);
+    const reach = 8 + s.size*0.6;              // bright stars are easier to hit
+    if(d < reach && d - s.size*0.3 < bestScore){ bestScore = d - s.size*0.3; best = s; }
+  });
+  if(best) select(best);
+});
+
+// ---------- 10. Search ----------
+const search = document.getElementById("search"), status = document.getElementById("status");
+search.addEventListener("change", ()=>{
+  const q = search.value.trim().toLowerCase(); if(!q){ status.textContent=""; return; }
+  const s = byName[q] || STARS.find(o=>o.designation && o.designation.toLowerCase()===q)
+         || STARS.find(o=>o.name && o.name.toLowerCase().startsWith(q));
+  if(s){ status.textContent=""; search.value=s.name||s.designation; search.blur(); select(s); }
+  else status.textContent = `No star called “${search.value.trim()}” in stars.json.`;
+});
+document.getElementById("lines").addEventListener("change", e=>{ if(asterism) asterism.visible=e.target.checked; });
+
+// ---------- 11. Labels follow their stars ----------
+function place(el, pos, dx, dy){
+  const p = screenOf(pos);
+  if(!p){ el.style.visibility="hidden"; return; }
+  el.style.visibility="visible";
+  el.style.transform=`translate(${Math.round(p.x+dx)}px, ${Math.round(p.y+dy)}px)`;
+}
+function updateLabels(){
+  labelled.forEach(s=>place(s.label, s.pos, 10, -10));
+  if(mode==="space"){ ringLabels.forEach(r=>place(r.el, r.pos, 4, 2)); place(sunLabel, sunPos, 10, -8); }
+}
+
+// ---------- 12. Animation loop ----------
+function loop(now){
+  requestAnimationFrame(loop);
+  if(tween){
+    const t = tween.dur ? Math.min(1,(now-tween.t0)/tween.dur) : 1, k = ease(t);
+    camera.position.lerpVectors(tween.p0, tween.p1, k);
+    controls.target.lerpVectors(tween.q0, tween.q1, k);
+    camera.lookAt(controls.target);
+    if(t>=1){ const done=tween.onDone; tween=null; done(); controls.enabled=true; controls.update(); }
+  } else controls.update();
+  renderer.render(scene, camera);
+  camera.updateMatrixWorld();
+  updateLabels();
+}
+camera.position.set(0,0,0.01);
+requestAnimationFrame(loop);
+window.addEventListener("resize", ()=>{
+  camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
